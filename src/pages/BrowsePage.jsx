@@ -193,10 +193,11 @@ export default function BrowsePage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {sortedMemories.map(mem => (
+          {sortedMemories.map((mem, index) => (
             <MemoryCard
               key={mem.id}
               memory={mem}
+              index={index + 1}
               editMode={editMode}
               selected={selectedIds.has(mem.id)}
               onToggleSelect={handleToggleSelect}

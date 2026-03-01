@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function MemoryCard({ memory, editMode, selected, onToggleSelect, onEdit, onDelete }) {
+export default function MemoryCard({ memory, index, editMode, selected, onToggleSelect, onEdit, onDelete }) {
   const [editing, setEditing] = useState(false)
   const [content, setContent] = useState(memory.content)
   const [importance, setImportance] = useState(memory.importance)
@@ -83,7 +83,8 @@ export default function MemoryCard({ memory, editMode, selected, onToggleSelect,
                   <div className="flex items-center gap-3 text-xs text-palace-text-muted">
                     <span>{dateStr}</span>
                     <span>⭐ {memory.importance}</span>
-                    <span className="text-palace-text-muted/50">#{memory.id}</span>
+                    {index && <span className="text-palace-gold-dark">No.{index}</span>}
+                    <span className="opacity-40">#{memory.id}</span>
                   </div>
                   {!editMode && (
                     <div className="flex gap-1">
