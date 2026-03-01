@@ -24,10 +24,17 @@ export default function MemoryCard({ memory, index, editMode, selected, onToggle
 
   return (
     <div className={`
-      bg-white/70 rounded-lg border transition-all duration-200
+      bg-white/70 rounded-lg border transition-all duration-200 relative
       ${selected ? 'border-palace-gold shadow-md' : 'border-palace-border'}
       ${!editMode && 'card-hover'}
     `}>
+      {/* 右上角序号 */}
+      {index && (
+        <span className="absolute top-2.5 right-3.5 text-xs text-palace-gold/60 font-serif">
+          No.{index}
+        </span>
+      )}
+
       <div className="p-4">
         <div className="flex items-start gap-3">
           {/* 编辑模式下的复选框 */}
@@ -78,23 +85,26 @@ export default function MemoryCard({ memory, index, editMode, selected, onToggle
             ) : (
               /* 展示状态 */
               <>
-                <p className="text-sm leading-relaxed text-palace-text break-words">{memory.content}</p>
-                <div className="flex items-center justify-between mt-2">
+                <p className="text-sm leading-relaxed text-palace-text break-words mt-1">{memory.content}</p>
+                <div className="flex items-center justify-between mt-3">
                   <div className="flex items-center gap-3 text-xs text-palace-text-muted">
                     <span>{dateStr}</span>
                     <span>⭐ {memory.importance}</span>
-                    {index && <span className="text-palace-gold-dark">No.{index}</span>}
-                    <span className="opacity-40">#{memory.id}</span>
+                    <span className="opacity-30">#{memory.id}</span>
                   </div>
                   {!editMode && (
-                    <div className="flex gap-1">
+                    <div className="flex gap-1.5">
                       <button onClick={() => setEditing(true)}
-                        className="px-2 py-1 text-xs text-palace-text-light hover:text-palace-gold-dark transition-colors">
-                        编辑
+                        className="px-2.5 py-1 text-xs rounded-md border border-transparent
+                          text-palace-text-light hover:text-palace-gold-dark hover:bg-palace-warm hover:border-palace-gold-light 
+                          transition-all">
+                        ✏️ 编辑
                       </button>
                       <button onClick={() => onDelete(memory.id)}
-                        className="px-2 py-1 text-xs text-palace-danger/60 hover:text-palace-danger transition-colors">
-                        删除
+                        className="px-2.5 py-1 text-xs rounded-md border border-transparent
+                          text-palace-text-muted hover:text-palace-danger hover:bg-palace-danger-light hover:border-palace-danger/20
+                          transition-all">
+                        🗑️ 删除
                       </button>
                     </div>
                   )}
