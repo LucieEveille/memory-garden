@@ -1,75 +1,69 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════
-   记忆花园 · 宫殿主题
-   Palace Theme — Cream & Gold
+   记忆花园 v2 · Monochrome
    ═══════════════════════════════════════ */
 
 @theme {
-  /* 宫殿色系 */
-  --color-palace-cream: #FAF6F0;
-  --color-palace-warm: #F5EDE0;
-  --color-palace-gold: #C9A96E;
-  --color-palace-gold-light: #E8D5A8;
-  --color-palace-gold-dark: #A8894E;
-  --color-palace-text: #5C4A32;
-  --color-palace-text-light: #8B7355;
-  --color-palace-text-muted: #B8A080;
-  --color-palace-border: #E5D5B8;
-  --color-palace-danger: #C17A6A;
-  --color-palace-danger-light: #F5E0DC;
-  --color-palace-success: #7AA882;
-  --color-palace-success-light: #E0F0E4;
+  --color-mg-bg: #F9FAFB;
+  --color-mg-card: #FFFFFF;
+  --color-mg-border: #E5E7EB;
+  --color-mg-border-hover: #D1D5DB;
+  --color-mg-text: #111827;
+  --color-mg-text-secondary: #6B7280;
+  --color-mg-text-muted: #9CA3AF;
+  --color-mg-input-bg: #F3F4F6;
+  --color-mg-black: #111827;
 
-  /* 字体 */
-  --font-serif: 'Cormorant Garamond', 'Noto Serif SC', serif;
-  --font-body: 'Noto Serif SC', 'Cormorant Garamond', serif;
+  --color-imp-green: #22c55e;
+  --color-imp-blue: #3b82f6;
+  --color-imp-purple: #a855f7;
+  --color-imp-orange: #f97316;
+  --color-imp-red: #ef4444;
+
+  --font-sans: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* 基础 */
 body {
-  background-color: var(--color-palace-cream);
-  color: var(--color-palace-text);
-  font-family: var(--font-body);
+  background-color: var(--color-mg-bg);
+  color: var(--color-mg-text);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   min-height: 100dvh;
 }
 
-/* 滚动条美化 */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--color-palace-cream);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-palace-gold-light);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-palace-gold);
-}
+/* 滚动条 */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
 
-/* 输入框统一风格 */
-input, textarea, select {
-  font-family: var(--font-body);
+/* Markdown 内容 */
+.md-body p { margin: 0 0 0.3em; }
+.md-body p:last-child { margin-bottom: 0; }
+.md-body strong { font-weight: 600; color: #374151; }
+.md-body code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8em;
+  background: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  border-radius: 4px;
+  padding: 0.1em 0.3em;
 }
+.md-body ul, .md-body ol { padding-left: 1.2em; margin: 0.2em 0; }
+.md-body ul { list-style-type: disc; }
+.md-body ol { list-style-type: decimal; }
+.md-body li { margin: 0.1em 0; }
 
-/* 过渡动画 */
-.fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+/* 动画 */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
+.fade-up { animation: fadeUp 0.2s ease-out; }
 
-/* 卡片悬浮效果 */
-.card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(201, 169, 110, 0.15);
-}
+.slide-up { animation: slideUp 0.25s ease-out; }

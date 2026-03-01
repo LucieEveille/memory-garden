@@ -3,20 +3,21 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
+  plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/api': {
+      '/debug': {
         target: 'https://luciememory.zeabur.app',
         changeOrigin: true,
       },
       '/admin': {
         target: 'https://luciememory.zeabur.app',
         changeOrigin: true,
-      }
+      },
+      '/import': {
+        target: 'https://luciememory.zeabur.app',
+        changeOrigin: true,
+      },
     }
   }
 })

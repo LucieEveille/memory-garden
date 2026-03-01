@@ -1,119 +1,133 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
-export default function MemoryCard({ memory, index, editMode, selected, onToggleSelect, onEdit, onDelete }) {
-  const [editing, setEditing] = useState(false)
-  const [content, setContent] = useState(memory.content)
-  const [importance, setImportance] = useState(memory.importance)
+// 重要度颜色 (4档: 绿蓝紫橙)
+export function getImpColor(level) {
+  if (level <= 4) return '#22c55e'
+  if (level <= 6) return '#3b82f6'
+  if (level <= 8) return '#a855f7'
+  return '#f97316'
+}
 
-  const handleSave = () => {
-    onEdit(memory.id, content, importance)
-    setEditing(false)
-  }
+export function getImpBg(level) {
+  if (level <= 4) return 'rgba(34,197,94,0.08)'
+  if (level <= 6) return 'rgba(59,130,246,0.08)'
+  if (level <= 8) return 'rgba(168,85,247,0.08)'
+  return 'rgba(249,115,22,0.08)'
+}
 
-  const handleCancel = () => {
-    setContent(memory.content)
-    setImportance(memory.importance)
-    setEditing(false)
-  }
+export default function MemoryCard({ memory, index, selectionMode, selected, onSelect, onEdit, onDelete }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [menuOpen])
+
+  const color = getImpColor(memory.importance)
+  const bg = getImpBg(memory.importance)
 
   const dateStr = memory.created_at
     ? new Date(memory.created_at).toLocaleDateString('zh-CN', {
-        month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        year: 'numeric', month: 'numeric', day: 'numeric',
       })
     : ''
 
   return (
-    <div className={`
-      bg-white/70 rounded-lg border transition-all duration-200 relative
-      ${selected ? 'border-palace-gold shadow-md' : 'border-palace-border'}
-      ${!editMode && 'card-hover'}
-    `}>
-      {/* 右上角序号 */}
-      {index && (
-        <span className="absolute top-2.5 right-3.5 text-xs text-palace-gold/60 font-serif">
-          No.{index}
+    <div
+      className="fade-up bg-mg-card border rounded-lg p-4 transition-all duration-150"
+      style={{
+        borderColor: selected ? '#111827' : '#E5E7EB',
+        boxShadow: selected ? '0 0 0 2px #111827' : '0 1px 2px rgba(0,0,0,0.04)',
+      }}
+    >
+      {/* 顶部行 */}
+      <div className="flex items-center gap-2 mb-2">
+        {/* 多选checkbox */}
+        {selectionMode && (
+          <button
+            onClick={() => onSelect(memory.id)}
+            className="flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors"
+            style={{
+              borderColor: selected ? '#111827' : '#D1D5DB',
+              backgroundColor: selected ? '#111827' : 'transparent',
+            }}
+          >
+            {selected && (
+              <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </button>
+        )}
+
+        {/* 序号 */}
+        <span className="text-xs text-mg-text-muted font-mono">
+          No.{String(index).padStart(3, '0')}
         </span>
-      )}
 
-      <div className="p-4">
-        <div className="flex items-start gap-3">
-          {/* 编辑模式下的复选框 */}
-          {editMode && (
-            <label className="flex-shrink-0 mt-0.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selected}
-                onChange={() => onToggleSelect(memory.id)}
-                className="w-4 h-4 accent-palace-gold"
-              />
-            </label>
-          )}
+        <div className="flex-1" />
 
-          <div className="flex-1 min-w-0">
-            {editing ? (
-              /* 编辑状态 */
-              <div className="space-y-3 fade-in">
-                <textarea
-                  value={content}
-                  onChange={e => setContent(e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm bg-palace-cream border border-palace-border rounded-lg 
-                    focus:outline-none focus:border-palace-gold resize-none text-palace-text"
-                />
-                <div className="flex items-center gap-3">
-                  <label className="text-xs text-palace-text-muted">重要度</label>
-                  <input
-                    type="range"
-                    min="1" max="10"
-                    value={importance}
-                    onChange={e => setImportance(Number(e.target.value))}
-                    className="flex-1 accent-palace-gold"
-                  />
-                  <span className="text-sm font-medium text-palace-gold-dark w-6 text-center">{importance}</span>
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <button onClick={handleCancel}
-                    className="px-3 py-1.5 text-xs text-palace-text-muted border border-palace-border rounded-md hover:bg-palace-warm transition-colors">
-                    取消
-                  </button>
-                  <button onClick={handleSave}
-                    className="px-3 py-1.5 text-xs text-white bg-palace-gold rounded-md hover:bg-palace-gold-dark transition-colors">
-                    保存
-                  </button>
-                </div>
+        {/* 重要度 */}
+        <span
+          className="text-xs px-1.5 py-0.5 rounded font-mono font-medium"
+          style={{ color, backgroundColor: bg, border: `1px solid ${color}30` }}
+        >
+          {memory.importance}
+        </span>
+
+        {/* 三点菜单 */}
+        {!selectionMode && (
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(v => !v)}
+              className="w-6 h-6 flex items-center justify-center rounded hover:bg-mg-input-bg transition-colors text-mg-text-muted hover:text-mg-text"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="1.5"/>
+                <circle cx="12" cy="12" r="1.5"/>
+                <circle cx="12" cy="19" r="1.5"/>
+              </svg>
+            </button>
+            {menuOpen && (
+              <div
+                className="absolute right-0 top-7 z-50 bg-white border border-mg-border rounded-lg shadow-lg py-1 min-w-[100px]"
+                style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}
+              >
+                <button
+                  onClick={() => { setMenuOpen(false); onEdit(memory) }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-mg-text-secondary hover:bg-mg-input-bg transition-colors"
+                >
+                  编辑
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); onDelete(memory.id) }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-imp-red hover:bg-red-50 transition-colors"
+                >
+                  删除
+                </button>
               </div>
-            ) : (
-              /* 展示状态 */
-              <>
-                <p className="text-sm leading-relaxed text-palace-text break-words mt-1">{memory.content}</p>
-                <div className="flex items-center justify-between mt-3">
-                  <div className="flex items-center gap-3 text-xs text-palace-text-muted">
-                    <span>{dateStr}</span>
-                    <span>⭐ {memory.importance}</span>
-                    <span className="opacity-30">#{memory.id}</span>
-                  </div>
-                  {!editMode && (
-                    <div className="flex gap-1.5">
-                      <button onClick={() => setEditing(true)}
-                        className="px-2.5 py-1 text-xs rounded-md border border-transparent
-                          text-palace-text-light hover:text-palace-gold-dark hover:bg-palace-warm hover:border-palace-gold-light 
-                          transition-all">
-                        ✏️ 编辑
-                      </button>
-                      <button onClick={() => onDelete(memory.id)}
-                        className="px-2.5 py-1 text-xs rounded-md border border-transparent
-                          text-palace-text-muted hover:text-palace-danger hover:bg-palace-danger-light hover:border-palace-danger/20
-                          transition-all">
-                        🗑️ 删除
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </>
             )}
           </div>
-        </div>
+        )}
       </div>
+
+      {/* 标题 */}
+      {memory.title && (
+        <h3 className="text-sm font-semibold text-mg-text mb-1">{memory.title}</h3>
+      )}
+
+      {/* 内容 */}
+      <p className="text-sm text-mg-text-secondary leading-relaxed break-words">
+        {memory.content}
+      </p>
+
+      {/* 日期 */}
+      <div className="mt-2.5 text-xs text-mg-text-muted">{dateStr}</div>
     </div>
   )
 }

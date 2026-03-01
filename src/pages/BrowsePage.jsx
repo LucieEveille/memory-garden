@@ -56,6 +56,8 @@ export default function BrowsePage() {
 
   const sortedMemories = sortMemories(memories, sort)
 
+  const isAllSelected = sortedMemories.length > 0 && selectedIds.size === sortedMemories.length
+
   const handleToggleSelect = (id) => {
     setSelectedIds(prev => {
       const next = new Set(prev)
@@ -65,7 +67,7 @@ export default function BrowsePage() {
   }
 
   const handleSelectAll = () => {
-    if (selectedIds.size === sortedMemories.length) {
+    if (isAllSelected) {
       setSelectedIds(new Set())
     } else {
       setSelectedIds(new Set(sortedMemories.map(m => m.id)))
@@ -155,12 +157,17 @@ export default function BrowsePage() {
       {/* 批量操作浮动栏 */}
       {editMode && (
         <div className="fade-in flex items-center justify-between px-4 py-2.5 bg-palace-warm rounded-lg border border-palace-gold-light">
-          <button 
-            onClick={handleSelectAll}
-            className="text-sm text-palace-gold-dark hover:underline"
-          >
-            {selectedIds.size === sortedMemories.length ? '取消全选' : '全选'}
-          </button>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={isAllSelected}
+              onChange={handleSelectAll}
+              className="w-4 h-4 accent-palace-gold"
+            />
+            <span className="text-sm text-palace-gold-dark">
+              {isAllSelected ? '取消全选' : '全选'}
+            </span>
+          </label>
           <div className="flex items-center gap-3">
             <span className="text-sm text-palace-text-muted">
               已选 <strong className="text-palace-gold-dark">{selectedIds.size}</strong> 条
@@ -174,7 +181,7 @@ export default function BrowsePage() {
                   : 'bg-palace-border text-palace-text-muted cursor-not-allowed'
               }`}
             >
-              🗑️ 删除
+              删除
             </button>
           </div>
         </div>
