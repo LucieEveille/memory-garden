@@ -135,14 +135,15 @@ export default function SettingsPage() {
                   <div className="flex-shrink-0 ml-4">
                     {meta.type === 'toggle' ? (
                       <button
-                        onClick={() => setConfigDraft(prev => ({ ...prev, [key]: String(prev[key]) === 'true' ? 'false' : 'true' }))}
+                        onClick={...}
                         className={`w-12 h-6 rounded-full transition-colors relative ${
                           String(configDraft[key]) === 'true' ? 'bg-palace-gold' : 'bg-palace-border'
                         }`}
                       >
-                        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                          String(configDraft[key]) === 'true' ? 'translate-x-6' : 'translate-x-0.5'
-                        }`} />
+                        <span 
+                          className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
+                          style={{ transform: String(configDraft[key]) === 'true' ? 'translateX(26px)' : 'translateX(2px)' }}
+                        />
                       </button>
                     ) : (
                       <div className="flex items-center gap-1">
