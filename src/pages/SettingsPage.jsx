@@ -141,7 +141,7 @@ export default function SettingsPage() {
                         }`}
                       >
                         <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                          String(configDraft[key]) === 'true' ? 'translate-x-6.5' : 'translate-x-0.5'
+                          String(configDraft[key]) === 'true' ? 'translate-x-6' : 'translate-x-0.5'
                         }`} />
                       </button>
                     ) : (
