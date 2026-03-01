@@ -136,13 +136,13 @@ export default function SettingsPage() {
                     {meta.type === 'toggle' ? (
                       <button
                         onClick={() => setConfigDraft(prev => ({ ...prev, [key]: String(prev[key]) === 'true' ? 'false' : 'true' }))}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${
+                        className={`w-11 h-6 rounded-full transition-colors relative ${
                           String(configDraft[key]) === 'true' ? 'bg-palace-gold' : 'bg-palace-border'
                         }`}
                       >
                         <span 
-                          className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
-                          style={{ transform: String(configDraft[key]) === 'true' ? 'translateX(26px)' : 'translateX(2px)' }}
+                          className="absolute top-0.5 h-5 w-5 bg-white rounded-full shadow transition-all"
+                          style={{ left: String(configDraft[key]) === 'true' ? 'calc(100% - 22px)' : '2px' }}
                         />
                       </button>
                     ) : (
