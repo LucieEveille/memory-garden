@@ -62,7 +62,8 @@ export async function fetchStatus() {
 export async function fetchConfig() {
   const res = await fetch(`${API_BASE}/admin/config`);
   if (!res.ok) throw new Error('获取配置失败');
-  return res.json();
+  const data = await res.json();
+  return data.config;
 }
 
 export async function updateConfig(key, value) {
