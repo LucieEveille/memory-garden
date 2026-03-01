@@ -135,7 +135,7 @@ export default function SettingsPage() {
                   <div className="flex-shrink-0 ml-4">
                     {meta.type === 'toggle' ? (
                       <button
-                        onClick={...}
+                        onClick={() => setConfigDraft(prev => ({ ...prev, [key]: String(prev[key]) === 'true' ? 'false' : 'true' }))}
                         className={`w-12 h-6 rounded-full transition-colors relative ${
                           String(configDraft[key]) === 'true' ? 'bg-palace-gold' : 'bg-palace-border'
                         }`}
