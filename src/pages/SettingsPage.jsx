@@ -154,7 +154,7 @@ export default function SettingsPage() {
                           className="w-20 px-2 py-1 text-sm text-right bg-palace-cream/50 border border-palace-border rounded
                             focus:outline-none focus:border-palace-gold text-palace-text"
                         />
-                        {meta.unit && <span className="text-xs text-palace-text-muted">{meta.unit}</span>}
+                        <span className="text-xs text-palace-text-muted w-4">{meta.unit || ''}</span>
                       </div>
                     )}
                   </div>
