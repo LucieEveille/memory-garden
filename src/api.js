@@ -1,26 +1,28 @@
 // ═══════════════════════════════════════
 // 记忆花园 · API 接口
-// 网关地址在环境变量中配置
+// 匹配 ai-memory-gateway v3.1 路由
 // ═══════════════════════════════════════
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 // ─── 记忆相关 ───
 
-export async function fetchMemories(sort = 'time_desc') {
-  const res = await fetch(`${API_BASE}/api/memories?sort=${sort}`);
+export async function fetchMemories(limit = 200) {
+  const res = await fetch(`${API_BASE}/debug/memories?limit=${limit}`);
   if (!res.ok) throw new Error('获取记忆失败');
-  return res.json();
+  const data = await res.json();
+  // 网关返回 { total_memories, query, results: [...] }
+  return data;
 }
 
-export async function searchMemories(query) {
-  const res = await fetch(`${API_BASE}/api/memories/search?q=${encodeURIComponent(query)}`);
+export async function searchMemories(query, limit = 20) {
+  const res = await fetch(`${API_BASE}/debug/memories?q=${encodeURIComponent(query)}&limit=${limit}`);
   if (!res.ok) throw new Error('搜索失败');
   return res.json();
 }
 
 export async function addMemory(content, importance = 5) {
-  const res = await fetch(`${API_BASE}/api/memories`, {
+  const res = await fetch(`${API_BASE}/debug/memories`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content, importance }),
@@ -30,7 +32,7 @@ export async function addMemory(content, importance = 5) {
 }
 
 export async function updateMemory(id, content, importance) {
-  const res = await fetch(`${API_BASE}/api/memories/${id}`, {
+  const res = await fetch(`${API_BASE}/debug/memories/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content, importance }),
@@ -40,7 +42,7 @@ export async function updateMemory(id, content, importance) {
 }
 
 export async function deleteMemory(id) {
-  const res = await fetch(`${API_BASE}/api/memories/${id}`, {
+  const res = await fetch(`${API_BASE}/debug/memories/${id}`, {
     method: 'DELETE',
   });
   if (!res.ok) throw new Error('删除失败');
@@ -84,20 +86,10 @@ export async function deleteMemories(ids) {
   return { success, failed };
 }
 
-// ─── 导出 ───
-
-export async function exportMemories() {
-  const res = await fetch(`${API_BASE}/api/memories/export`);
-  if (!res.ok) throw new Error('导出失败');
-  return res.json();
-}
-
 // ─── 种子导入 ───
 
 export async function importSeeds() {
-  const res = await fetch(`${API_BASE}/api/memories/import-seeds`, {
-    method: 'POST',
-  });
+  const res = await fetch(`${API_BASE}/import/seed-memories`);
   if (!res.ok) throw new Error('导入失败');
   return res.json();
 }

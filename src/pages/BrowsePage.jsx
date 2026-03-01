@@ -9,6 +9,21 @@ const SORT_OPTIONS = [
   { value: 'importance_asc', label: '重要度 低→高' },
 ]
 
+function sortMemories(memories, sort) {
+  const sorted = [...memories]
+  switch (sort) {
+    case 'time_asc':
+      return sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    case 'importance_desc':
+      return sorted.sort((a, b) => b.importance - a.importance)
+    case 'importance_asc':
+      return sorted.sort((a, b) => a.importance - b.importance)
+    case 'time_desc':
+    default:
+      return sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  }
+}
+
 export default function BrowsePage() {
   const [memories, setMemories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -20,8 +35,8 @@ export default function BrowsePage() {
   const loadMemories = async () => {
     setLoading(true)
     try {
-      const data = await fetchMemories(sort)
-      setMemories(data.memories || [])
+      const data = await fetchMemories(500)
+      setMemories(data.results || [])
     } catch (e) {
       setMessage({ type: 'error', text: '加载失败: ' + e.message })
     } finally {
@@ -29,7 +44,7 @@ export default function BrowsePage() {
     }
   }
 
-  useEffect(() => { loadMemories() }, [sort])
+  useEffect(() => { loadMemories() }, [])
 
   // 消息自动消失
   useEffect(() => {
@@ -38,6 +53,8 @@ export default function BrowsePage() {
       return () => clearTimeout(timer)
     }
   }, [message])
+
+  const sortedMemories = sortMemories(memories, sort)
 
   const handleToggleSelect = (id) => {
     setSelectedIds(prev => {
@@ -48,10 +65,10 @@ export default function BrowsePage() {
   }
 
   const handleSelectAll = () => {
-    if (selectedIds.size === memories.length) {
+    if (selectedIds.size === sortedMemories.length) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(memories.map(m => m.id)))
+      setSelectedIds(new Set(sortedMemories.map(m => m.id)))
     }
   }
 
@@ -120,7 +137,7 @@ export default function BrowsePage() {
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          <span className="text-xs text-palace-text-muted">{memories.length} 条</span>
+          <span className="text-xs text-palace-text-muted">{sortedMemories.length} 条</span>
         </div>
 
         <button 
@@ -142,7 +159,7 @@ export default function BrowsePage() {
             onClick={handleSelectAll}
             className="text-sm text-palace-gold-dark hover:underline"
           >
-            {selectedIds.size === memories.length ? '取消全选' : '全选'}
+            {selectedIds.size === sortedMemories.length ? '取消全选' : '全选'}
           </button>
           <div className="flex items-center gap-3">
             <span className="text-sm text-palace-text-muted">
@@ -169,14 +186,14 @@ export default function BrowsePage() {
           <div className="text-2xl mb-2">🌿</div>
           加载中…
         </div>
-      ) : memories.length === 0 ? (
+      ) : sortedMemories.length === 0 ? (
         <div className="text-center py-12 text-palace-text-muted">
           <div className="text-2xl mb-2">🍃</div>
           还没有记忆
         </div>
       ) : (
         <div className="space-y-3">
-          {memories.map(mem => (
+          {sortedMemories.map(mem => (
             <MemoryCard
               key={mem.id}
               memory={mem}

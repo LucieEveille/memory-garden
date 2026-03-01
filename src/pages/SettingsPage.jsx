@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fetchStatus, fetchConfig, updateConfig, exportMemories, importSeeds } from '../api'
+import { fetchStatus, fetchConfig, updateConfig, importSeeds } from '../api'
 
 const CONFIG_LABELS = {
   memory_enabled: { label: '记忆系统', type: 'toggle', desc: '总开关' },
@@ -59,27 +59,11 @@ export default function SettingsPage() {
         }
       }
       showMessage('success', '配置已保存 ✅')
-      loadData() // 刷新
+      loadData()
     } catch (e) {
       showMessage('error', '保存失败: ' + e.message)
     } finally {
       setSaving(false)
-    }
-  }
-
-  const handleExport = async () => {
-    try {
-      const data = await exportMemories()
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `memories-${new Date().toISOString().slice(0, 10)}.json`
-      a.click()
-      URL.revokeObjectURL(url)
-      showMessage('success', '导出成功')
-    } catch (e) {
-      showMessage('error', '导出失败')
     }
   }
 
@@ -113,8 +97,8 @@ export default function SettingsPage() {
         {status ? (
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: '记忆总数', value: status.total_memories ?? '—' },
-              { label: '版本', value: status.version ?? '—' },
+              { label: '记忆总数', value: status.memory_count ?? '—' },
+              { label: '网关版本', value: status.gateway?.replace('AI Memory Gateway ', '') ?? '—' },
               { label: '提取间隔', value: `${status.extract_interval ?? '—'} 轮` },
               { label: '注入条数', value: `${status.max_inject ?? '—'} 条` },
             ].map(item => (
@@ -151,7 +135,7 @@ export default function SettingsPage() {
                   <div className="flex-shrink-0 ml-4">
                     {meta.type === 'toggle' ? (
                       <button
-                        onClick={() => setConfigDraft(prev => ({ ...prev, [key]: !prev[key] && prev[key] !== 'true' ? 'true' : 'false' }))}
+                        onClick={() => setConfigDraft(prev => ({ ...prev, [key]: String(prev[key]) === 'true' ? 'false' : 'true' }))}
                         className={`w-12 h-6 rounded-full transition-colors relative ${
                           String(configDraft[key]) === 'true' ? 'bg-palace-gold' : 'bg-palace-border'
                         }`}
@@ -197,11 +181,6 @@ export default function SettingsPage() {
       <section className="bg-white/70 rounded-lg border border-palace-border p-5">
         <h2 className="font-serif text-lg text-palace-gold-dark mb-3">🎐 快捷操作</h2>
         <div className="space-y-2">
-          <button onClick={handleExport}
-            className="w-full py-2.5 text-sm border border-palace-border rounded-lg 
-              text-palace-text-light hover:border-palace-gold hover:text-palace-gold-dark transition-colors">
-            📦 导出记忆 JSON
-          </button>
           <button onClick={handleImportSeeds}
             className="w-full py-2.5 text-sm border border-palace-border rounded-lg 
               text-palace-text-light hover:border-palace-gold hover:text-palace-gold-dark transition-colors">

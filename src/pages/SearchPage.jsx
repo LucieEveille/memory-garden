@@ -51,18 +51,15 @@ export default function SearchPage() {
         <div className="fade-in space-y-3">
           <p className="text-sm text-palace-text-muted">
             找到 <strong className="text-palace-gold-dark">{results.results?.length || 0}</strong> 条结果
-            {results.search_type && (
-              <span className="ml-2 px-2 py-0.5 bg-palace-warm rounded text-xs">
-                {results.search_type === 'vector' ? '🧠 语义搜索' : '📝 关键词搜索'}
-              </span>
-            )}
+            <span className="ml-2 px-2 py-0.5 bg-palace-warm rounded text-xs">
+              🧠 语义搜索
+            </span>
           </p>
 
           {results.results?.map((mem, i) => (
             <div key={mem.id || i} className="bg-white/70 rounded-lg border border-palace-border p-4 card-hover">
               <p className="text-sm leading-relaxed text-palace-text">{mem.content}</p>
               <div className="flex items-center gap-3 mt-2 text-xs text-palace-text-muted">
-                {mem.score && <span>相关度 {(mem.score * 100).toFixed(0)}%</span>}
                 <span>⭐ {mem.importance}</span>
                 <span>#{mem.id}</span>
               </div>
