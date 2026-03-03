@@ -352,7 +352,9 @@ export default function App() {
             <div className="relative" ref={impDropdownRef}>
               <button
                 onClick={() => setImpDropdownOpen(v => !v)}
-                className="flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors whitespace-nowrap"
+                className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors whitespace-nowrap ${
+                  filterImp === null && !impDropdownOpen ? 'hover:bg-mg-input-bg hover:text-mg-text-secondary' : ''
+                }`}
                 style={{
                   color: filterImp !== null
                     ? (FILTER_TABS.find(t => t.value === filterImp)?.color ?? '#111827')
@@ -391,7 +393,7 @@ export default function App() {
                           setFilterImp(tab.value)
                           setImpDropdownOpen(false)
                         }}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-mg-input-bg"
                         style={{
                           color: active ? (tab.color ?? '#111827') : '#6B7280',
                           backgroundColor: active ? '#F9FAFB' : 'transparent',
