@@ -159,10 +159,10 @@ export default function DateRangePicker({ startDate, endDate, onChange }) {
       {/* 触发按钮 */}
       <button
         onClick={handleOpen}
-        className="flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors whitespace-nowrap"
+        className="flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors whitespace-nowrap hover-gray"
         style={{
           color: hasRange ? '#111827' : '#9CA3AF',
-          backgroundColor: hasRange ? '#F3F4F6' : open ? '#F3F4F6' : 'transparent',
+          backgroundColor: hasRange ? '#F3F4F6' : open ? '#F3F4F6' : undefined,
           fontWeight: hasRange ? 600 : 400,
         }}
       >

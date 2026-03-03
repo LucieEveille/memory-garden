@@ -42,7 +42,7 @@ export default function MemoryCard({ memory, index, selectionMode, selected, onS
       className="fade-up bg-mg-card border rounded-lg p-4 transition-all duration-150"
       style={{
         borderColor: selected ? '#111827' : '#E5E7EB',
-        boxShadow: selected ? '0 0 0 2px #111827' : '0 1px 2px rgba(0,0,0,0.04)',
+        boxShadow: selected ? '0 0 0 1px #111827' : '0 1px 2px rgba(0,0,0,0.04)',
       }}
     >
       {/* 顶部行 */}

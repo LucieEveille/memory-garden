@@ -55,6 +55,11 @@ body {
 .md-body ol { list-style-type: decimal; }
 .md-body li { margin: 0.1em 0; }
 
+/* Hover 工具类（覆盖 inline style） */
+.hover-gray:hover {
+  background-color: #F3F4F6 !important;
+}
+
 /* 动画 */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(6px); }
