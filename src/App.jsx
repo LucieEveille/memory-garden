@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { fetchMemories, addMemory, updateMemory, deleteMemory, deleteMemories } from './api'
 import MemoryCard from './components/MemoryCard'
 import MemoryModal from './components/MemoryModal'
 import BatchToolbar from './components/BatchToolbar'
 import SettingsModal from './components/SettingsModal'
+import DateRangePicker from './components/DateRangePicker'
 
 // 排序切换按钮组
 const SORT_GROUPS = [
@@ -42,6 +43,9 @@ export default function App() {
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('no-asc')
   const [filterImp, setFilterImp] = useState(null)
+  const [dateStart, setDateStart] = useState(null)
+  const [dateEnd, setDateEnd] = useState(null)
+  const [impDropdownOpen, setImpDropdownOpen] = useState(false)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selected, setSelected] = useState(new Set())
   const [modalOpen, setModalOpen] = useState(false)
@@ -49,6 +53,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [toast, setToast] = useState(null)
+  const impDropdownRef = useRef(null)
 
   // 加载
   const loadMemories = async () => {
@@ -74,6 +79,22 @@ export default function App() {
     }
   }, [toast])
 
+  // 重要度下拉菜单 - 点击外部关闭
+  useEffect(() => {
+    if (!impDropdownOpen) return
+    const handler = (e) => {
+      if (impDropdownRef.current && !impDropdownRef.current.contains(e.target)) {
+        setImpDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('touchstart', handler)
+    }
+  }, [impDropdownOpen])
+
   // 过滤 + 排序
   const filtered = useMemo(() => {
     let list = memories
@@ -98,8 +119,21 @@ export default function App() {
       })
     }
 
+    // 日期范围过滤
+    if (dateStart) {
+      const startTime = new Date(dateStart.getFullYear(), dateStart.getMonth(), dateStart.getDate()).getTime()
+      const endTime = dateEnd
+        ? new Date(dateEnd.getFullYear(), dateEnd.getMonth(), dateEnd.getDate(), 23, 59, 59, 999).getTime()
+        : new Date(dateStart.getFullYear(), dateStart.getMonth(), dateStart.getDate(), 23, 59, 59, 999).getTime()
+      list = list.filter(m => {
+        if (!m.created_at) return false
+        const t = new Date(m.created_at).getTime()
+        return t >= startTime && t <= endTime
+      })
+    }
+
     return sortList(list, sortBy)
-  }, [memories, search, filterImp, sortBy])
+  }, [memories, search, filterImp, dateStart, dateEnd, sortBy])
 
   // 每档数量（用于 tabs 显示）
   const counts = useMemo(() => ({
@@ -252,11 +286,13 @@ export default function App() {
             {/* 多选 */}
             <button
               onClick={selectionMode ? exitSelection : () => setSelectionMode(true)}
-              className="flex items-center gap-1 px-2.5 py-2 text-xs rounded-lg border transition-colors flex-shrink-0"
+              className={`flex items-center gap-1 px-2.5 py-2 text-xs rounded-lg border transition-colors flex-shrink-0 ${
+                selectionMode ? '' : 'hover:bg-mg-input-bg hover:border-mg-border-hover hover:text-mg-text'
+              }`}
               style={{
-                borderColor: selectionMode ? '#111827' : '#E5E7EB',
+                borderColor: selectionMode ? '#111827' : undefined,
                 color: selectionMode ? '#111827' : '#6B7280',
-                backgroundColor: selectionMode ? '#F3F4F6' : 'transparent',
+                backgroundColor: selectionMode ? '#F3F4F6' : undefined,
                 fontWeight: selectionMode ? 600 : 400,
               }}
             >
@@ -266,7 +302,7 @@ export default function App() {
             {/* 设置 */}
             <button
               onClick={() => setSettingsOpen(true)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg border border-mg-border text-mg-text-muted hover:text-mg-text hover:border-mg-border-hover transition-colors flex-shrink-0"
+              className="w-8 h-8 flex items-center justify-center rounded-lg border border-mg-border text-mg-text-muted hover:text-mg-text hover:bg-mg-input-bg hover:border-mg-border-hover transition-colors flex-shrink-0"
             >
               ⚙
             </button>
@@ -274,7 +310,7 @@ export default function App() {
             {/* 新建 */}
             <button
               onClick={openCreate}
-              className="flex items-center gap-1 px-3 py-2 text-xs bg-mg-black text-white rounded-lg hover:bg-black transition-colors flex-shrink-0"
+              className="flex items-center gap-1 px-3 py-2 text-xs bg-mg-black text-white rounded-lg hover:bg-gray-800 active:bg-black transition-colors flex-shrink-0"
             >
               <span>+</span>
               <span className="hidden sm:inline">新建</span>
@@ -282,7 +318,7 @@ export default function App() {
           </div>
 
           {/* 第二行：排序 + 过滤 */}
-          <div className="flex items-center gap-1 pb-2 overflow-x-auto">
+          <div className="flex items-center gap-1 pb-2 flex-wrap">
             {/* 排序 */}
             {SORT_GROUPS.map(g => {
               const isActive = sortBy === g.asc || sortBy === g.desc
@@ -312,31 +348,80 @@ export default function App() {
 
             <div className="w-px h-3.5 bg-mg-border mx-1 flex-shrink-0" />
 
-            {/* 重要度过滤 */}
-            {FILTER_TABS.map((tab, i) => {
-              const active = filterImp === tab.value
-              return (
-                <button
-                  key={String(tab.value)}
-                  onClick={() => setFilterImp(tab.value)}
-                  className="flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors whitespace-nowrap"
-                  style={{
-                    color: active ? (tab.color ?? '#111827') : '#9CA3AF',
-                    backgroundColor: active ? (tab.color ? `${tab.color}12` : '#F3F4F6') : 'transparent',
-                    fontWeight: active ? 600 : 400,
-                  }}
+            {/* 重要度下拉筛选 */}
+            <div className="relative" ref={impDropdownRef}>
+              <button
+                onClick={() => setImpDropdownOpen(v => !v)}
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors whitespace-nowrap"
+                style={{
+                  color: filterImp !== null
+                    ? (FILTER_TABS.find(t => t.value === filterImp)?.color ?? '#111827')
+                    : '#9CA3AF',
+                  backgroundColor: filterImp !== null
+                    ? `${FILTER_TABS.find(t => t.value === filterImp)?.color ?? '#111827'}12`
+                    : impDropdownOpen ? '#F3F4F6' : 'transparent',
+                  fontWeight: filterImp !== null ? 600 : 400,
+                }}
+              >
+                {filterImp !== null && (
+                  <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: FILTER_TABS.find(t => t.value === filterImp)?.color }}
+                  />
+                )}
+                {filterImp !== null
+                  ? FILTER_TABS.find(t => t.value === filterImp)?.label
+                  : '重要度'}
+                <span style={{ fontSize: '0.6rem', opacity: 0.6, marginLeft: '1px' }}>
+                  {impDropdownOpen ? '▲' : '▼'}
+                </span>
+              </button>
+
+              {impDropdownOpen && (
+                <div
+                  className="absolute left-0 top-full mt-1 z-50 bg-white border border-mg-border rounded-lg shadow-lg py-1 min-w-[120px]"
+                  style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}
                 >
-                  {tab.color && (
-                    <span
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: tab.color }}
-                    />
-                  )}
-                  {tab.label}
-                  <span className="opacity-50">({countKeys[i]})</span>
-                </button>
-              )
-            })}
+                  {FILTER_TABS.map((tab, i) => {
+                    const active = filterImp === tab.value
+                    return (
+                      <button
+                        key={String(tab.value)}
+                        onClick={() => {
+                          setFilterImp(tab.value)
+                          setImpDropdownOpen(false)
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
+                        style={{
+                          color: active ? (tab.color ?? '#111827') : '#6B7280',
+                          backgroundColor: active ? '#F9FAFB' : 'transparent',
+                          fontWeight: active ? 600 : 400,
+                        }}
+                      >
+                        {tab.color ? (
+                          <span
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: tab.color }}
+                          />
+                        ) : (
+                          <span className="w-2 h-2 flex-shrink-0" />
+                        )}
+                        <span>{tab.label}</span>
+                        <span className="ml-auto opacity-40">({countKeys[i]})</span>
+                        {active && <span style={{ fontSize: '0.6rem' }}>✓</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 日历范围筛选 */}
+            <DateRangePicker
+              startDate={dateStart}
+              endDate={dateEnd}
+              onChange={(s, e) => { setDateStart(s); setDateEnd(e) }}
+            />
           </div>
         </div>
       </header>

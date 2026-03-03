@@ -126,8 +126,10 @@ export default function MemoryCard({ memory, index, selectionMode, selected, onS
         {memory.content}
       </p>
 
-      {/* 日期 */}
-      <div className="mt-2.5 text-xs text-mg-text-muted">{dateStr}</div>
+      {/* 日期 + ID */}
+      <div className="mt-2.5 text-xs text-mg-text-muted">
+        {dateStr}{memory.id ? `\u2003#${memory.id}` : ''}
+      </div>
     </div>
   )
 }
