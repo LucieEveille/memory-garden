@@ -136,3 +136,38 @@ export async function fetchProviderModels(id) {
   if (!res.ok) throw new Error('获取模型列表失败')
   return res.json()
 }
+
+// ─── 已保存模型 ───
+
+export async function fetchSavedModels(providerId) {
+  const res = await fetch(`${API_BASE}/admin/providers/${providerId}/saved-models`)
+  if (!res.ok) throw new Error('获取已保存模型失败')
+  const data = await res.json()
+  return data.models || []
+}
+
+export async function addSavedModel(providerId, modelData) {
+  const res = await fetch(`${API_BASE}/admin/providers/${providerId}/saved-models`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(modelData),
+  })
+  if (!res.ok) throw new Error('添加模型失败')
+  return res.json()
+}
+
+export async function updateSavedModel(modelPkId, data) {
+  const res = await fetch(`${API_BASE}/admin/saved-models/${modelPkId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('更新模型失败')
+  return res.json()
+}
+
+export async function deleteSavedModel(modelPkId) {
+  const res = await fetch(`${API_BASE}/admin/saved-models/${modelPkId}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('删除模型失败')
+  return res.json()
+}

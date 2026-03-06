@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { fetchStatus, fetchConfig, updateConfig, importSeeds,
          fetchProviders, createProvider, updateProvider, deleteProvider,
-         fetchProviderModels } from '../api'
+         fetchProviderModels,
+         fetchSavedModels, addSavedModel, updateSavedModel, deleteSavedModel } from '../api'
 
 // ═══════════════════════════════════════
 // 侧边栏导航项
@@ -57,6 +58,77 @@ function HelpTip({ text }) {
 }
 
 // ═══════════════════════════════════════
+// 模型能力图标
+// ═══════════════════════════════════════
+function ModelBadges({ model }) {
+  const badges = []
+  const inp = (model.input_modes || '').split(',').map(s => s.trim())
+  const out = (model.output_modes || '').split(',').map(s => s.trim())
+  const caps = (model.capabilities || '').split(',').map(s => s.trim())
+
+  if (inp.includes('image'))
+    badges.push({ key: 'vision', color: '#22c55e', title: '读图',
+      icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> })
+  if (out.includes('image'))
+    badges.push({ key: 'imagegen', color: '#3b82f6', title: '出图',
+      icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg> })
+  if (caps.includes('tools'))
+    badges.push({ key: 'tools', color: '#f97316', title: '工具',
+      icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg> })
+  if (caps.includes('reasoning'))
+    badges.push({ key: 'reasoning', color: '#9CA3AF', title: '推理',
+      icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18h6m-5-8a3 3 0 1 1 6 0c0 1.3-.8 2.4-2 3v1H9v-1c-1.2-.6-2-1.7-2-3Z"/><circle cx="12" cy="12" r="10"/></svg> })
+
+  if (badges.length === 0) return null
+  return (
+    <span className="flex items-center gap-0.5 flex-shrink-0">
+      {badges.map(b => (
+        <span key={b.key} title={b.title}
+          className="w-5 h-5 flex items-center justify-center rounded-full"
+          style={{ color: b.color, backgroundColor: b.color + '18' }}>
+          {b.icon}
+        </span>
+      ))}
+    </span>
+  )
+}
+
+// ═══════════════════════════════════════
+// 从供应商 API 返回的模型数据中提取能力
+// ═══════════════════════════════════════
+function extractModelCaps(modelObj) {
+  const inputMods = modelObj?.architecture?.input_modalities || []
+  const outputMods = modelObj?.architecture?.output_modalities || []
+  const params = modelObj?.supported_parameters || []
+
+  const input_modes = inputMods.filter(m => ['text', 'image'].includes(m)).join(',') || 'text'
+  const output_modes = outputMods.filter(m => ['text', 'image'].includes(m)).join(',') || 'text'
+  const capList = []
+  if (params.includes('tools')) capList.push('tools')
+  if (params.includes('reasoning')) capList.push('reasoning')
+  const capabilities = capList.join(',')
+
+  return { input_modes, output_modes, capabilities }
+}
+
+// 从 API 模型数据快速生成 badge 用的简化结构
+function apiModelBadges(modelObj) {
+  const inp = modelObj?.architecture?.input_modalities || []
+  const out = modelObj?.architecture?.output_modalities || []
+  const params = modelObj?.supported_parameters || []
+  const badges = []
+  if (inp.includes('image')) badges.push({ key: 'vision', color: '#22c55e', title: '读图',
+    icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> })
+  if (out.includes('image')) badges.push({ key: 'imagegen', color: '#3b82f6', title: '出图',
+    icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg> })
+  if (params.includes('tools')) badges.push({ key: 'tools', color: '#f97316', title: '工具',
+    icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg> })
+  if (params.includes('reasoning')) badges.push({ key: 'reasoning', color: '#9CA3AF', title: '推理',
+    icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18h6m-5-8a3 3 0 1 1 6 0c0 1.3-.8 2.4-2 3v1H9v-1c-1.2-.6-2-1.7-2-3Z"/><circle cx="12" cy="12" r="10"/></svg> })
+  return badges
+}
+
+// ═══════════════════════════════════════
 // 供应商面板（三列布局）
 // ═══════════════════════════════════════
 function ProviderPanel({ msg, setMsg }) {
@@ -67,9 +139,14 @@ function ProviderPanel({ msg, setMsg }) {
   const [showKey, setShowKey] = useState(false)
   const [models, setModels] = useState([])
   const [modelsLoading, setModelsLoading] = useState(false)
-  const [modelSearch, setModelSearch] = useState('')
   const [saving, setSaving] = useState(false)
-  const [editing, setEditing] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const nameInputRef = useRef(null)
+  // 已保存模型
+  const [savedModels, setSavedModels] = useState([])
+  const [showModelPicker, setShowModelPicker] = useState(false)
+  const [editingModel, setEditingModel] = useState(null)
   // 手机端三级导航
   const [mobileView, setMobileView] = useState('list') // 'list' | 'detail'
 
@@ -102,8 +179,13 @@ function ProviderPanel({ msg, setMsg }) {
     })
     setShowKey(false)
     setModels([])
-    setModelSearch('')
-    setEditing(false)
+    setEditingName(false)
+    setSaved(false)
+    setSavedModels([])
+    setShowModelPicker(false)
+    setEditingModel(null)
+    // 加载已保存模型
+    fetchSavedModels(p.id).then(setSavedModels).catch(() => {})
   }
 
   const selected = providers.find(p => p.id === selectedId)
@@ -122,7 +204,6 @@ function ProviderPanel({ msg, setMsg }) {
         setSelectedId(res.provider.id)
         initDraft(res.provider)
         setMobileView('detail')
-        setEditing(true)
       }
     } catch {
       setMsg({ ok: false, text: '创建失败' })
@@ -137,7 +218,8 @@ function ProviderPanel({ msg, setMsg }) {
       if (res.provider) {
         setProviders(prev => prev.map(p => p.id === selectedId ? res.provider : p))
         setMsg({ ok: true, text: '已保存' })
-        setEditing(false)
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
       }
     } catch {
       setMsg({ ok: false, text: '保存失败' })
@@ -184,20 +266,6 @@ function ProviderPanel({ msg, setMsg }) {
     }
   }
 
-  const filteredModels = modelSearch
-    ? models.filter(m => (m.id || '').toLowerCase().includes(modelSearch.toLowerCase()))
-    : models
-
-  // 按供应商前缀分组
-  const groupedModels = {}
-  filteredModels.forEach(m => {
-    const id = m.id || ''
-    const slash = id.indexOf('/')
-    const group = slash > 0 ? id.substring(0, slash) : '其他'
-    if (!groupedModels[group]) groupedModels[group] = []
-    groupedModels[group].push(m)
-  })
-
   if (loading) return <div className="flex items-center justify-center h-full text-sm text-mg-text-muted">加载中…</div>
 
   // ── 手机端：供应商列表 ──
@@ -237,150 +305,184 @@ function ProviderPanel({ msg, setMsg }) {
   )
 
   // ── 供应商详情 ──
+  const isDirty = selected && (
+    editDraft.name !== (selected.name || '') ||
+    editDraft.api_key !== (selected.api_key || '') ||
+    editDraft.api_base_url !== (selected.api_base_url || '') ||
+    editDraft.enabled !== (selected.enabled !== false)
+  )
   const detailView = selected ? (
     <div className="h-full overflow-y-auto p-4 space-y-4">
       {/* 手机端返回按钮 */}
-      <button onClick={() => { setMobileView('list'); setEditing(false) }}
+      <button onClick={() => { setMobileView('list'); setEditingName(false) }}
         className="sm:hidden flex items-center gap-1 text-sm text-mg-text-secondary hover:text-mg-text mb-2">
         ‹ 返回
       </button>
 
       {/* 名称 + 启用开关 */}
       <div className="flex items-center gap-3">
-        {editing ? (
-          <input type="text" value={editDraft.name || ''} placeholder="供应商名称"
-            onChange={e => setEditDraft(prev => ({ ...prev, name: e.target.value }))}
-            className="flex-1 text-base font-medium bg-mg-input-bg border border-mg-border rounded-lg px-3 py-1.5 outline-none focus:border-mg-text-muted text-mg-text placeholder-mg-text-muted" />
+        {editingName ? (
+          <div className="flex-1 flex items-center gap-1.5">
+            <input ref={nameInputRef} type="text" value={editDraft.name || ''} placeholder="供应商名称"
+              onChange={e => setEditDraft(prev => ({ ...prev, name: e.target.value }))}
+              onBlur={() => setEditingName(false)}
+              onKeyDown={e => { if (e.key === 'Enter') setEditingName(false) }}
+              className="flex-1 text-base font-medium bg-mg-input-bg border border-mg-border rounded-lg px-3 py-1.5 outline-none focus:border-mg-text-muted text-mg-text" />
+          </div>
         ) : (
-          <span className="flex-1 text-base font-medium text-mg-text truncate">{selected.name || '未命名'}</span>
+          <div className="flex-1 flex items-center gap-1.5 min-w-0">
+            <span className="text-base font-medium text-mg-text truncate">{editDraft.name || '未命名'}</span>
+            <button onClick={() => { setEditingName(true); setTimeout(() => nameInputRef.current?.focus(), 50) }}
+              className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-mg-text-muted hover:text-mg-text transition-colors"
+              title="修改名称">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                <path d="m15 5 4 4"/>
+              </svg>
+            </button>
+          </div>
         )}
-        <button onClick={() => {
-          if (editing) {
-            setEditDraft(prev => ({ ...prev, enabled: !prev.enabled }))
-          }
-        }}
-          className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${editing ? 'cursor-pointer' : 'cursor-default'}`}
-          style={{ backgroundColor: (editing ? editDraft.enabled : selected.enabled) ? '#111827' : '#D1D5DB' }}>
+        <button onClick={() => setEditDraft(prev => ({ ...prev, enabled: !prev.enabled }))}
+          className="w-11 h-6 rounded-full transition-colors relative flex-shrink-0"
+          style={{ backgroundColor: editDraft.enabled ? '#111827' : '#D1D5DB' }}>
           <span className="absolute top-0.5 h-5 w-5 bg-white rounded-full shadow transition-all"
-            style={{ left: (editing ? editDraft.enabled : selected.enabled) ? 'calc(100% - 22px)' : '2px' }} />
+            style={{ left: editDraft.enabled ? 'calc(100% - 22px)' : '2px' }} />
         </button>
       </div>
 
       {/* API Key */}
       <div>
         <label className="text-xs font-medium text-mg-text-secondary mb-1 block">API Key</label>
-        {editing ? (
-          <div className="flex items-center gap-2">
-            <input type={showKey ? 'text' : 'password'} value={editDraft.api_key || ''} placeholder="sk-..."
-              onChange={e => setEditDraft(prev => ({ ...prev, api_key: e.target.value }))}
-              className="flex-1 px-3 py-2 text-sm bg-mg-input-bg border border-mg-border rounded-lg focus:outline-none focus:border-mg-text-muted text-mg-text font-mono" />
-            <button onClick={() => setShowKey(v => !v)}
-              className="px-2 py-2 text-xs text-mg-text-muted hover:text-mg-text transition-colors">
-              {showKey ? '🙈' : '👁'}
-            </button>
-          </div>
-        ) : (
-          <div className="px-3 py-2 text-sm bg-mg-input-bg border border-mg-border rounded-lg text-mg-text-muted font-mono select-none">
-            {selected.api_key_preview || '未设置'}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <input type={showKey ? 'text' : 'password'} value={editDraft.api_key || ''} placeholder="sk-..."
+            onChange={e => setEditDraft(prev => ({ ...prev, api_key: e.target.value }))}
+            className="flex-1 px-3 py-2 text-sm bg-mg-input-bg border border-mg-border rounded-lg focus:outline-none focus:border-mg-text-muted text-mg-text font-mono" />
+          <button onClick={() => setShowKey(v => !v)}
+            className="px-2 py-2 text-xs text-mg-text-muted hover:text-mg-text transition-colors">
+            {showKey ? '🙈' : '👁'}
+          </button>
+        </div>
       </div>
 
       {/* API Base URL */}
       <div>
         <label className="text-xs font-medium text-mg-text-secondary mb-1 block">API Base URL</label>
-        {editing ? (
-          <input type="text" value={editDraft.api_base_url || ''} placeholder="https://openrouter.ai/api/v1"
-            onChange={e => setEditDraft(prev => ({ ...prev, api_base_url: e.target.value }))}
-            className="w-full px-3 py-2 text-sm bg-mg-input-bg border border-mg-border rounded-lg focus:outline-none focus:border-mg-text-muted text-mg-text font-mono" />
-        ) : (
-          <div className="px-3 py-2 text-sm bg-mg-input-bg border border-mg-border rounded-lg text-mg-text font-mono truncate">
-            {selected.api_base_url || '未设置'}
-          </div>
-        )}
+        <input type="text" value={editDraft.api_base_url || ''} placeholder="https://openrouter.ai/api/v1"
+          onChange={e => setEditDraft(prev => ({ ...prev, api_base_url: e.target.value }))}
+          className="w-full px-3 py-2 text-sm bg-mg-input-bg border border-mg-border rounded-lg focus:outline-none focus:border-mg-text-muted text-mg-text font-mono" />
       </div>
 
-      {/* 操作按钮 */}
+      {/* 操作按钮：保存 + 删除 */}
       <div className="flex gap-2">
-        {editing ? (
-          <>
-            <button onClick={handleSave} disabled={saving}
-              className="flex-1 py-2 text-sm bg-mg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-40">
-              {saving ? '保存中…' : '保存'}
-            </button>
-            <button onClick={() => { initDraft(selected); setEditing(false) }}
-              className="px-4 py-2 text-sm text-mg-text-secondary border border-mg-border rounded-lg hover:bg-mg-input-bg transition-colors">
-              取消
-            </button>
-            <button onClick={handleDelete}
-              className="px-3 py-2 text-sm text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
-              title="删除供应商">
-              🗑
-            </button>
-          </>
-        ) : (
-          <button onClick={() => { initDraft(selected); setEditing(true) }}
-            className="flex-1 py-2 text-sm border border-mg-border rounded-lg text-mg-text-secondary hover:text-mg-text hover:bg-mg-input-bg transition-colors">
-            ✏️ 编辑
-          </button>
-        )}
+        <button onClick={handleSave} disabled={saving || !isDirty}
+          className={`flex-1 py-2 text-sm rounded-lg transition-all ${
+            saved && !isDirty
+              ? 'bg-green-600 text-white'
+              : isDirty
+                ? 'bg-mg-black text-white hover:bg-gray-800'
+                : 'bg-mg-input-bg text-mg-text-muted cursor-default'
+          } disabled:opacity-40`}>
+          {saving ? '保存中…' : saved && !isDirty ? '已保存 ✓' : '保存'}
+        </button>
+        <button onClick={handleDelete}
+          className="w-10 h-9 flex items-center justify-center text-red-400 border border-red-200 rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors"
+          title="删除供应商">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+            <line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
+          </svg>
+        </button>
       </div>
 
       {/* 分隔线 */}
       <div className="border-t border-mg-border" />
 
-      {/* 模型列表 */}
+      {/* 已保存模型列表 */}
       <div>
         <div className="flex items-center gap-2 mb-3">
           <span className="text-sm font-medium text-mg-text">模型</span>
-          {models.length > 0 && (
-            <span className="text-xs px-1.5 py-0.5 bg-mg-input-bg rounded text-mg-text-secondary">{models.length}</span>
+          {savedModels.length > 0 && (
+            <span className="text-xs px-1.5 py-0.5 bg-mg-input-bg rounded text-mg-text-secondary">{savedModels.length}</span>
           )}
           <div className="flex-1" />
-          <button onClick={handleFetchModels} disabled={modelsLoading}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs border border-mg-border rounded-lg text-mg-text-secondary hover:text-mg-text hover:bg-mg-input-bg transition-colors disabled:opacity-40">
-            {modelsLoading ? '获取中…' : '🔄 获取模型'}
+          <button onClick={() => { setShowModelPicker(true); if (models.length === 0) handleFetchModels() }}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs border border-mg-border rounded-lg text-mg-text-secondary hover:text-mg-text hover:bg-mg-input-bg transition-colors">
+            ＋ 管理
           </button>
         </div>
 
-        {models.length > 0 && (
-          <>
-            {/* 搜索 */}
-            <div className="relative mb-3">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-mg-text-muted text-xs">🔍</span>
-              <input type="text" value={modelSearch} onChange={e => setModelSearch(e.target.value)}
-                placeholder="搜索模型 ID…"
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-mg-input-bg border border-mg-border rounded-lg focus:outline-none focus:border-mg-text-muted text-mg-text placeholder-mg-text-muted" />
-            </div>
-
-            {/* 分组列表 */}
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {Object.entries(groupedModels).map(([group, list]) => (
-                <div key={group}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-medium text-mg-text-secondary">{group}</span>
-                    <span className="text-xs text-mg-text-muted">({list.length})</span>
-                  </div>
-                  <div className="space-y-0.5">
-                    {list.map(m => (
-                      <div key={m.id}
-                        className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-mg-input-bg transition-colors group">
-                        <span className="text-xs text-mg-text flex-1 truncate font-mono">{m.id}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        {models.length === 0 && !modelsLoading && (
+        {savedModels.length > 0 ? (
+          <div className="space-y-1">
+            {savedModels.map(m => (
+              <div key={m.id} className="flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-mg-input-bg transition-colors group">
+                <span className="flex-1 text-xs text-mg-text truncate font-mono">{m.display_name || m.model_id}</span>
+                <ModelBadges model={m} />
+                <button onClick={() => setEditingModel(m)}
+                  className="w-6 h-6 flex items-center justify-center text-mg-text-muted hover:text-mg-text transition-colors opacity-0 group-hover:opacity-100"
+                  title="编辑模型">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+                <button onClick={async () => {
+                  await deleteSavedModel(m.id)
+                  setSavedModels(prev => prev.filter(x => x.id !== m.id))
+                }}
+                  className="w-6 h-6 flex items-center justify-center text-mg-text-muted hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                  title="移除模型">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
           <p className="text-xs text-mg-text-muted text-center py-4">
-            点击「获取模型」从供应商 API 加载可用模型
+            点击「管理」添加模型
           </p>
         )}
       </div>
+
+      {/* 模型选择弹窗 */}
+      {showModelPicker && (
+        <ModelPickerModal
+          models={models}
+          modelsLoading={modelsLoading}
+          savedModels={savedModels}
+          providerId={selectedId}
+          onAdd={async (modelObj) => {
+            const caps = extractModelCaps(modelObj)
+            const res = await addSavedModel(selectedId, {
+              model_id: modelObj.id,
+              display_name: modelObj.name || modelObj.id,
+              ...caps,
+            })
+            if (res.model) setSavedModels(prev => [...prev, res.model])
+          }}
+          onRemove={async (modelId) => {
+            const sm = savedModels.find(m => m.model_id === modelId)
+            if (sm) {
+              await deleteSavedModel(sm.id)
+              setSavedModels(prev => prev.filter(x => x.id !== sm.id))
+            }
+          }}
+          onRefresh={handleFetchModels}
+          onClose={() => setShowModelPicker(false)}
+        />
+      )}
+
+      {/* 模型编辑弹窗 */}
+      {editingModel && (
+        <ModelEditModal
+          model={editingModel}
+          onSave={async (data) => {
+            const res = await updateSavedModel(editingModel.id, data)
+            if (res.model) setSavedModels(prev => prev.map(m => m.id === editingModel.id ? res.model : m))
+            setEditingModel(null)
+          }}
+          onClose={() => setEditingModel(null)}
+        />
+      )}
     </div>
   ) : (
     <div className="flex items-center justify-center h-full text-sm text-mg-text-muted">
@@ -402,6 +504,257 @@ function ProviderPanel({ msg, setMsg }) {
         mobileView === 'detail' ? 'block' : 'hidden sm:block'
       }`} style={{ minHeight: 0 }}>
         {detailView}
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════
+// 模型选择弹窗（从供应商 API 加载，+/- 添加移除）
+// ═══════════════════════════════════════
+function ModelPickerModal({ models, modelsLoading, savedModels, onAdd, onRemove, onRefresh, onClose }) {
+  const [search, setSearch] = useState('')
+  const savedIds = new Set(savedModels.map(m => m.model_id))
+
+  const filtered = search
+    ? models.filter(m => {
+        const q = search.toLowerCase()
+        return (m.id || '').toLowerCase().includes(q) || (m.name || '').toLowerCase().includes(q)
+      })
+    : models
+
+  // 按前缀分组
+  const grouped = {}
+  filtered.forEach(m => {
+    const id = m.id || ''
+    const slash = id.indexOf('/')
+    const group = slash > 0 ? id.substring(0, slash) : '其他'
+    if (!grouped[group]) grouped[group] = []
+    grouped[group].push(m)
+  })
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="slide-up bg-white rounded-xl w-full max-w-lg shadow-2xl flex flex-col"
+        style={{ height: 'min(75vh, 560px)', maxHeight: '85vh' }}>
+
+        {/* 头部 */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-mg-border flex-shrink-0">
+          <h3 className="text-base font-medium text-mg-text">模型管理</h3>
+          <div className="flex items-center gap-2">
+            <button onClick={onRefresh} disabled={modelsLoading}
+              className="px-2.5 py-1 text-xs border border-mg-border rounded-lg text-mg-text-secondary hover:text-mg-text hover:bg-mg-input-bg transition-colors disabled:opacity-40">
+              {modelsLoading ? '刷新中…' : '🔄 刷新'}
+            </button>
+            <button onClick={onClose}
+              className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-mg-input-bg text-mg-text-muted hover:text-mg-text transition-colors">
+              ✕
+            </button>
+          </div>
+        </div>
+
+        {/* 搜索 */}
+        <div className="px-4 pt-3 pb-2 flex-shrink-0">
+          <div className="relative">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-mg-text-muted" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="搜索模型 ID 或名称…"
+              className="w-full pl-8 pr-3 py-2 text-sm bg-mg-input-bg border border-mg-border rounded-lg focus:outline-none focus:border-mg-text-muted text-mg-text placeholder-mg-text-muted" />
+          </div>
+        </div>
+
+        {/* 模型列表 */}
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
+          {modelsLoading && models.length === 0 ? (
+            <p className="text-sm text-mg-text-muted text-center py-8">加载中…</p>
+          ) : filtered.length === 0 ? (
+            <p className="text-sm text-mg-text-muted text-center py-8">没有找到模型</p>
+          ) : (
+            <div className="space-y-3">
+              {Object.entries(grouped).map(([group, list]) => (
+                <div key={group}>
+                  <div className="flex items-center gap-2 mb-1 sticky top-0 bg-white py-1">
+                    <span className="text-xs font-medium text-mg-text-secondary">{group}</span>
+                    <span className="text-xs text-mg-text-muted">({list.length})</span>
+                  </div>
+                  <div className="space-y-0.5">
+                    {list.map(m => {
+                      const isSaved = savedIds.has(m.id)
+                      const badges = apiModelBadges(m)
+                      return (
+                        <div key={m.id}
+                          className={`flex items-center gap-2 px-2.5 py-2 rounded-lg transition-colors ${isSaved ? 'bg-blue-50' : 'hover:bg-mg-input-bg'}`}>
+                          <span className="flex-1 text-xs text-mg-text truncate font-mono">{m.name || m.id}</span>
+                          {badges.length > 0 && (
+                            <span className="flex items-center gap-0.5 flex-shrink-0">
+                              {badges.map(b => (
+                                <span key={b.key} title={b.title}
+                                  className="w-5 h-5 flex items-center justify-center rounded-full"
+                                  style={{ color: b.color, backgroundColor: b.color + '18' }}>
+                                  {b.icon}
+                                </span>
+                              ))}
+                            </span>
+                          )}
+                          <button onClick={() => isSaved ? onRemove(m.id) : onAdd(m)}
+                            className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors flex-shrink-0 ${
+                              isSaved
+                                ? 'text-blue-500 hover:text-red-500 hover:bg-red-50'
+                                : 'text-mg-text-muted hover:text-green-600 hover:bg-green-50'
+                            }`}>
+                            {isSaved ? (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            ) : (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            )}
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════
+// 模型编辑弹窗
+// ═══════════════════════════════════════
+function ModelEditModal({ model, onSave, onClose }) {
+  const [draft, setDraft] = useState({
+    display_name: model.display_name || model.model_id || '',
+    model_type: model.model_type || 'chat',
+    input_modes: model.input_modes || 'text',
+    output_modes: model.output_modes || 'text',
+    capabilities: model.capabilities || '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  const toggleField = (field, value) => {
+    setDraft(prev => {
+      const current = prev[field].split(',').map(s => s.trim()).filter(Boolean)
+      const has = current.includes(value)
+      const next = has ? current.filter(v => v !== value) : [...current, value]
+      return { ...prev, [field]: next.join(',') }
+    })
+  }
+
+  const hasValue = (field, value) => {
+    return draft[field].split(',').map(s => s.trim()).includes(value)
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await onSave(draft)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const ToggleBtn = ({ field, value, label }) => {
+    const active = hasValue(field, value)
+    return (
+      <button onClick={() => toggleField(field, value)}
+        className={`flex-1 py-2.5 text-sm rounded-lg border transition-colors ${
+          active
+            ? 'bg-mg-black text-white border-mg-black'
+            : 'bg-white text-mg-text-secondary border-mg-border hover:bg-mg-input-bg'
+        }`}>
+        {label}
+      </button>
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="slide-up bg-white rounded-xl w-full max-w-md shadow-2xl overflow-y-auto" style={{ maxHeight: '85vh' }}>
+
+        {/* 头部 */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-mg-border">
+          <h3 className="text-base font-medium text-mg-text">编辑模型</h3>
+          <button onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-mg-input-bg text-mg-text-muted hover:text-mg-text transition-colors">
+            ✕
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-4">
+          {/* 模型 ID（只读） */}
+          <div>
+            <label className="text-xs font-medium text-mg-text-secondary mb-1 block">模型 ID</label>
+            <div className="px-3 py-2 text-sm bg-gray-100 border border-mg-border rounded-lg text-mg-text-muted font-mono select-all">
+              {model.model_id}
+            </div>
+          </div>
+
+          {/* 模型名称 */}
+          <div>
+            <label className="text-xs font-medium text-mg-text-secondary mb-1 block">模型名称</label>
+            <input type="text" value={draft.display_name}
+              onChange={e => setDraft(prev => ({ ...prev, display_name: e.target.value }))}
+              className="w-full px-3 py-2 text-sm bg-mg-input-bg border border-mg-border rounded-lg focus:outline-none focus:border-mg-text-muted text-mg-text" />
+          </div>
+
+          {/* 模型类型 */}
+          <div>
+            <label className="text-xs font-medium text-mg-text-secondary mb-2 block">模型类型</label>
+            <div className="flex gap-2">
+              <button onClick={() => setDraft(prev => ({ ...prev, model_type: 'chat' }))}
+                className={`flex-1 py-2.5 text-sm rounded-lg border transition-colors ${
+                  draft.model_type === 'chat' ? 'bg-mg-black text-white border-mg-black' : 'bg-white text-mg-text-secondary border-mg-border hover:bg-mg-input-bg'
+                }`}>聊天</button>
+              <button onClick={() => setDraft(prev => ({ ...prev, model_type: 'embedding' }))}
+                className={`flex-1 py-2.5 text-sm rounded-lg border transition-colors ${
+                  draft.model_type === 'embedding' ? 'bg-mg-black text-white border-mg-black' : 'bg-white text-mg-text-secondary border-mg-border hover:bg-mg-input-bg'
+                }`}>嵌入</button>
+            </div>
+          </div>
+
+          {/* 输入模式 */}
+          <div>
+            <label className="text-xs font-medium text-mg-text-secondary mb-2 block">输入模式</label>
+            <div className="flex gap-2">
+              <ToggleBtn field="input_modes" value="text" label="文本" />
+              <ToggleBtn field="input_modes" value="image" label="图片" />
+            </div>
+          </div>
+
+          {/* 输出模式 */}
+          <div>
+            <label className="text-xs font-medium text-mg-text-secondary mb-2 block">输出模式</label>
+            <div className="flex gap-2">
+              <ToggleBtn field="output_modes" value="text" label="文本" />
+              <ToggleBtn field="output_modes" value="image" label="图片" />
+            </div>
+          </div>
+
+          {/* 能力 */}
+          <div>
+            <label className="text-xs font-medium text-mg-text-secondary mb-2 block">能力</label>
+            <div className="flex gap-2">
+              <ToggleBtn field="capabilities" value="tools" label="工具" />
+              <ToggleBtn field="capabilities" value="reasoning" label="推理" />
+            </div>
+          </div>
+
+          {/* 确认 */}
+          <button onClick={handleSave} disabled={saving}
+            className="w-full py-2.5 text-sm bg-mg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-40">
+            {saving ? '保存中…' : '✓ 确认'}
+          </button>
+        </div>
       </div>
     </div>
   )
