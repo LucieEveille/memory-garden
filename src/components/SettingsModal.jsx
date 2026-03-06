@@ -69,6 +69,7 @@ function ProviderPanel({ msg, setMsg }) {
   const [modelsLoading, setModelsLoading] = useState(false)
   const [modelSearch, setModelSearch] = useState('')
   const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState(false)
   // 手机端三级导航
   const [mobileView, setMobileView] = useState('list') // 'list' | 'detail'
 
@@ -102,6 +103,7 @@ function ProviderPanel({ msg, setMsg }) {
     setShowKey(false)
     setModels([])
     setModelSearch('')
+    setEditing(false)
   }
 
   const selected = providers.find(p => p.id === selectedId)
@@ -120,6 +122,7 @@ function ProviderPanel({ msg, setMsg }) {
         setSelectedId(res.provider.id)
         initDraft(res.provider)
         setMobileView('detail')
+        setEditing(true)
       }
     } catch {
       setMsg({ ok: false, text: '创建失败' })
@@ -134,6 +137,7 @@ function ProviderPanel({ msg, setMsg }) {
       if (res.provider) {
         setProviders(prev => prev.map(p => p.id === selectedId ? res.provider : p))
         setMsg({ ok: true, text: '已保存' })
+        setEditing(false)
       }
     } catch {
       setMsg({ ok: false, text: '保存失败' })
@@ -202,10 +206,11 @@ function ProviderPanel({ msg, setMsg }) {
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {providers.map(p => (
           <button key={p.id} onClick={() => handleSelect(p)}
-            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left transition-colors"
+            className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left transition-colors hover-gray ${
+              p.id === selectedId ? 'font-semibold' : 'font-normal'
+            }`}
             style={{
-              backgroundColor: p.id === selectedId ? '#F3F4F6' : 'transparent',
-              fontWeight: p.id === selectedId ? 600 : 400,
+              backgroundColor: p.id === selectedId ? '#F3F4F6' : undefined,
             }}>
             <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
               style={{ backgroundColor: p.enabled ? '#111827' : '#9CA3AF' }}>
@@ -235,56 +240,90 @@ function ProviderPanel({ msg, setMsg }) {
   const detailView = selected ? (
     <div className="h-full overflow-y-auto p-4 space-y-4">
       {/* 手机端返回按钮 */}
-      <button onClick={() => setMobileView('list')}
+      <button onClick={() => { setMobileView('list'); setEditing(false) }}
         className="sm:hidden flex items-center gap-1 text-sm text-mg-text-secondary hover:text-mg-text mb-2">
         ‹ 返回
       </button>
 
-      {/* 名称 + 启用 */}
+      {/* 名称 + 启用开关 */}
       <div className="flex items-center gap-3">
-        <input type="text" value={editDraft.name || ''} placeholder="供应商名称"
-          onChange={e => setEditDraft(prev => ({ ...prev, name: e.target.value }))}
-          className="flex-1 text-base font-medium bg-transparent border-none outline-none text-mg-text placeholder-mg-text-muted" />
-        <button onClick={() => setEditDraft(prev => ({ ...prev, enabled: !prev.enabled }))}
-          className="w-11 h-6 rounded-full transition-colors relative flex-shrink-0"
-          style={{ backgroundColor: editDraft.enabled ? '#111827' : '#D1D5DB' }}>
+        {editing ? (
+          <input type="text" value={editDraft.name || ''} placeholder="供应商名称"
+            onChange={e => setEditDraft(prev => ({ ...prev, name: e.target.value }))}
+            className="flex-1 text-base font-medium bg-mg-input-bg border border-mg-border rounded-lg px-3 py-1.5 outline-none focus:border-mg-text-muted text-mg-text placeholder-mg-text-muted" />
+        ) : (
+          <span className="flex-1 text-base font-medium text-mg-text truncate">{selected.name || '未命名'}</span>
+        )}
+        <button onClick={() => {
+          if (editing) {
+            setEditDraft(prev => ({ ...prev, enabled: !prev.enabled }))
+          }
+        }}
+          className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${editing ? 'cursor-pointer' : 'cursor-default'}`}
+          style={{ backgroundColor: (editing ? editDraft.enabled : selected.enabled) ? '#111827' : '#D1D5DB' }}>
           <span className="absolute top-0.5 h-5 w-5 bg-white rounded-full shadow transition-all"
-            style={{ left: editDraft.enabled ? 'calc(100% - 22px)' : '2px' }} />
+            style={{ left: (editing ? editDraft.enabled : selected.enabled) ? 'calc(100% - 22px)' : '2px' }} />
         </button>
       </div>
 
       {/* API Key */}
       <div>
         <label className="text-xs font-medium text-mg-text-secondary mb-1 block">API Key</label>
-        <div className="flex items-center gap-2">
-          <input type={showKey ? 'text' : 'password'} value={editDraft.api_key || ''} placeholder="sk-..."
-            onChange={e => setEditDraft(prev => ({ ...prev, api_key: e.target.value }))}
-            className="flex-1 px-3 py-2 text-sm bg-mg-input-bg border border-mg-border rounded-lg focus:outline-none focus:border-mg-text-muted text-mg-text font-mono" />
-          <button onClick={() => setShowKey(v => !v)}
-            className="px-2 py-2 text-xs text-mg-text-muted hover:text-mg-text transition-colors">
-            {showKey ? '🙈' : '👁'}
-          </button>
-        </div>
+        {editing ? (
+          <div className="flex items-center gap-2">
+            <input type={showKey ? 'text' : 'password'} value={editDraft.api_key || ''} placeholder="sk-..."
+              onChange={e => setEditDraft(prev => ({ ...prev, api_key: e.target.value }))}
+              className="flex-1 px-3 py-2 text-sm bg-mg-input-bg border border-mg-border rounded-lg focus:outline-none focus:border-mg-text-muted text-mg-text font-mono" />
+            <button onClick={() => setShowKey(v => !v)}
+              className="px-2 py-2 text-xs text-mg-text-muted hover:text-mg-text transition-colors">
+              {showKey ? '🙈' : '👁'}
+            </button>
+          </div>
+        ) : (
+          <div className="px-3 py-2 text-sm bg-mg-input-bg border border-mg-border rounded-lg text-mg-text-muted font-mono select-none">
+            {selected.api_key_preview || '未设置'}
+          </div>
+        )}
       </div>
 
       {/* API Base URL */}
       <div>
         <label className="text-xs font-medium text-mg-text-secondary mb-1 block">API Base URL</label>
-        <input type="text" value={editDraft.api_base_url || ''} placeholder="https://openrouter.ai/api/v1"
-          onChange={e => setEditDraft(prev => ({ ...prev, api_base_url: e.target.value }))}
-          className="w-full px-3 py-2 text-sm bg-mg-input-bg border border-mg-border rounded-lg focus:outline-none focus:border-mg-text-muted text-mg-text font-mono" />
+        {editing ? (
+          <input type="text" value={editDraft.api_base_url || ''} placeholder="https://openrouter.ai/api/v1"
+            onChange={e => setEditDraft(prev => ({ ...prev, api_base_url: e.target.value }))}
+            className="w-full px-3 py-2 text-sm bg-mg-input-bg border border-mg-border rounded-lg focus:outline-none focus:border-mg-text-muted text-mg-text font-mono" />
+        ) : (
+          <div className="px-3 py-2 text-sm bg-mg-input-bg border border-mg-border rounded-lg text-mg-text font-mono truncate">
+            {selected.api_base_url || '未设置'}
+          </div>
+        )}
       </div>
 
       {/* 操作按钮 */}
       <div className="flex gap-2">
-        <button onClick={handleSave} disabled={saving}
-          className="flex-1 py-2 text-sm bg-mg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-40">
-          {saving ? '保存中…' : '保存'}
-        </button>
-        <button onClick={handleDelete}
-          className="px-4 py-2 text-sm text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
-          删除
-        </button>
+        {editing ? (
+          <>
+            <button onClick={handleSave} disabled={saving}
+              className="flex-1 py-2 text-sm bg-mg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-40">
+              {saving ? '保存中…' : '保存'}
+            </button>
+            <button onClick={() => { initDraft(selected); setEditing(false) }}
+              className="px-4 py-2 text-sm text-mg-text-secondary border border-mg-border rounded-lg hover:bg-mg-input-bg transition-colors">
+              取消
+            </button>
+            <button onClick={handleDelete}
+              className="px-3 py-2 text-sm text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+              title="删除供应商">
+              🗑
+            </button>
+          </>
+        ) : (
+          <button onClick={() => { initDraft(selected); setEditing(true) }}
+            className="flex-1 py-2 text-sm border border-mg-border rounded-lg text-mg-text-secondary hover:text-mg-text hover:bg-mg-input-bg transition-colors">
+            ✏️ 编辑
+          </button>
+        )}
       </div>
 
       {/* 分隔线 */}
@@ -601,20 +640,24 @@ export default function SettingsModal({ open, onClose }) {
             mobileShowNav ? 'w-full sm:w-44' : 'hidden sm:block sm:w-44'
           }`}>
             <div className="space-y-0.5 px-2">
-              {NAV_ITEMS.map(item => (
+              {NAV_ITEMS.map(item => {
+                const isActive = activeTab === item.key && !mobileShowNav
+                return (
                 <button key={item.key} onClick={() => handleTabClick(item.key)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-colors"
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-colors hover-gray ${
+                    isActive ? 'font-semibold' : 'font-normal'
+                  }`}
                   style={{
-                    backgroundColor: activeTab === item.key && !mobileShowNav ? '#F3F4F6' : 'transparent',
-                    color: activeTab === item.key && !mobileShowNav ? '#111827' : '#6B7280',
-                    fontWeight: activeTab === item.key && !mobileShowNav ? 600 : 400,
+                    backgroundColor: isActive ? '#F3F4F6' : undefined,
+                    color: isActive ? '#111827' : '#6B7280',
                   }}>
                   <span className="text-sm">{item.icon}</span>
                   <span className="text-sm">{item.label}</span>
                   {/* 手机端显示箭头 */}
                   <span className="sm:hidden ml-auto text-mg-text-muted text-xs">›</span>
                 </button>
-              ))}
+                )
+              })}
             </div>
           </nav>
 
