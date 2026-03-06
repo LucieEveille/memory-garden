@@ -50,11 +50,15 @@ export async function deleteMemory(id) {
 }
 
 export async function deleteMemories(ids) {
-  const results = await Promise.allSettled(ids.map(id => deleteMemory(id)))
-  return {
-    success: results.filter(r => r.status === 'fulfilled').length,
-    failed: results.filter(r => r.status === 'rejected').length,
+  let success = 0, failed = 0
+  const BATCH = 5
+  for (let i = 0; i < ids.length; i += BATCH) {
+    const batch = ids.slice(i, i + BATCH)
+    const results = await Promise.allSettled(batch.map(id => deleteMemory(id)))
+    success += results.filter(r => r.status === 'fulfilled').length
+    failed += results.filter(r => r.status === 'rejected').length
   }
+  return { success, failed }
 }
 
 // ─── 系统 ───
@@ -101,7 +105,7 @@ export async function fetchProviders() {
   return data.providers || []
 }
 
-export async function createProvider(name, api_base_url, api_key = '', enabled = true) {
+export async function createProvider(name, api_base_url, api_key = '', enabled = false) {
   const res = await fetch(`${API_BASE}/admin/providers`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
